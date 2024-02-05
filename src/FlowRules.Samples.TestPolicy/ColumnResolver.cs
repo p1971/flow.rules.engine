@@ -15,7 +15,7 @@ public class ColumnResolver
             {
                 _dictionary.Add(name, null);
             }
-            return new ValueResolver(_dictionary[name]);
+            return (ValueResolver) _dictionary[name];
         }
         set
         {

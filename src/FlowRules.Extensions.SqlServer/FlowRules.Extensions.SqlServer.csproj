@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
     <Authors>Pete Robinson</Authors>
     <PackageProjectUrl>https://github.com/p1971/flow.rules</PackageProjectUrl>
     <RepositoryUrl>https://github.com/p1971/flow.rules</RepositoryUrl>

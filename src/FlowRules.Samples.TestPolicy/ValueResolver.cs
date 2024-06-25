@@ -32,10 +32,6 @@ public class ValueResolver
             return default;
         }
 
-        return typeof(T) switch
-        {
-            var testInt when testInt.GetType() == typeof(int) => (T)Convert.ChangeType(testInt, typeof(T)),
-            _ => default
-        };
+        return (T)Convert.ChangeType(value, typeof(T));
     }
 }

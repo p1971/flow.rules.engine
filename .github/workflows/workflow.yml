@@ -13,24 +13,24 @@ jobs:
     steps:
 
     - name: Checkout source code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Fetch git history
       run: git fetch --prune --unshallow
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.9
+      uses: gittools/actions/gitversion/setup@v3.1.1
       with:
-          versionSpec: '5.x'
+          versionSpec: '6.0.5'
 
     - name: Determine semantic version
       id: gitversion
-      uses: gittools/actions/gitversion/execute@v0.9.9
+      uses: gittools/actions/gitversion/execute@v3.1.1
 
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-          dotnet-version: '8.x'
+          dotnet-version: '9.x'
 
     - name: dotnet clean
       run: dotnet clean src
@@ -59,11 +59,11 @@ jobs:
 
     - name: nuget packaging
       run: |
-            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
-            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
-            echo "VERSION=${{ steps.gitversion.outputs.NuGetVersion }}" >> $GITHUB_ENV
+            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.FullSemVer }};SymbolPackageFormat=snupkg            
+            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.FullSemVer }};SymbolPackageFormat=snupkg
+            echo "VERSION=${{ steps.gitversion.outputs.FullSemVer }}" >> $GITHUB_ENV
             ls ${{ env.NugetPackagePath }}/*
-            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath }}/version.txt
+            echo "${{ steps.gitversion.outputs.FullSemVer }}" > ${{ env.NugetPackagePath }}/version.txt
 
     - name: Setup nuget.exe
       uses: nuget/setup-nuget@v1
@@ -74,7 +74,7 @@ jobs:
       run: ls -l /home/runner/nuget
 
     - name: Upload nuget packages
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: nuget_packages
         path: /home/runner/nuget
@@ -85,41 +85,27 @@ jobs:
     steps:
 
       - name: download
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: nuget_packages
+          path: ./nuget_packages
 
       - name: Extract version from artifact
         run: |
+            ls ./nuget_packages/*
             version=`cat ./nuget_packages/version.txt`
             echo "VERSION=$version" >> $GITHUB_ENV
-
-      - name: Setup nuget.exe
-        uses: nuget/setup-nuget@v1
-        with:
-          nuget-version: latest
-
-      - name: setup nuget config
-        run: |
-          nuget source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/p1971/index.json"
-          nuget setApiKey ${{secrets.GITHUB_TOKEN}} -Source "https://nuget.pkg.github.com/p1971/index.json"
 
       - name: Push generated package to GitHub registry
         if: contains(github.ref, 'develop') || contains(github.ref, 'releases')
         run: |
-          for f in ./nuget_packages/*.nupkg
-          do
-              nuget push $f -Source "https://nuget.pkg.github.com/p1971/index.json" -SkipDuplicate -ApiKey ${{secrets.GITHUB_TOKEN}}
-          done
+          nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
         shell: bash
 
       - name: Push generated package to Nuget registry
         if: contains(github.ref, 'main')
         run: |
-          for f in ./nuget_packages/*.nupkg
-          do
-              nuget push $f -Source "https://api.nuget.org/v3/index.json" -SkipDuplicate -ApiKey ${{secrets.NUGET_API_KEY}}
-          done
+          nuget push ./nuget_packages/*.nupkg --source "https://api.nuget.org/v3/index.json" --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}}          
         shell: bash
 
       - name: Create Release

@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddFlowRules<T>(
         this IServiceCollection services,
         Func<Policy<T>> policyAction,
-        Action<FlowRulesOptions> setupAction = null)
+        Action<FlowRulesOptions>? setupAction = null)
         where T : class
     {
         FlowRulesOptions options = new();
@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
         }
         else
         {
-            services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), typeof(DefaultPolicyResultsRepository<T>));
+            services.TryAddSingleton<IPolicyResultsRepository<T>, DefaultPolicyResultsRepository<T>>();
         }
 
         services.AddSingleton<IPolicyManager<T>, PolicyManager<T>>();

@@ -32,7 +32,15 @@ public static class Program
 
         IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
 
-        MortgageApplication testMortgage = new(21, "FTB", 500_000, 70_000, 120_000, 1000, 2000, 25);
+        MortgageApplication testMortgage = new(
+            21,
+            "FTB",
+            500_000,
+            70_000,
+            120_000,
+            1000,
+            2000,
+            25);
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -45,7 +53,7 @@ public static class Program
 
         await host.StartAsync(cancellationToken);
 
-        serviceProvider.Dispose();
+        await serviceProvider.DisposeAsync();
     }
 
     private static ServiceCollection GetServiceCollection(IConfiguration config)

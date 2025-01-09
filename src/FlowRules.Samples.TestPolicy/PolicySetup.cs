@@ -1,6 +1,5 @@
-﻿using FlowRules.Engine.Models;
-using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
+﻿using FlowRules.Engine;
+using FlowRules.Engine.Models;
 
 namespace FlowRules.Samples.TestPolicy;
 
@@ -8,7 +7,7 @@ public static class PolicySetup
 {
     public static Policy<MortgageApplication> GetPolicy()
     {
-        Lookups? lookup = GetLookups();
+        NestedLookup<string, object>? lookup = GetLookups();
 
         Rule<MortgageApplication> validMortgageTypeRule = new(
             "MA001",
@@ -18,8 +17,10 @@ public static class PolicySetup
             async (request, token) =>
             {
                 await Task.Delay(100, token);
-                ColumnResolver mortgageType = lookup["Default"][request.MortgageType];
-                return mortgageType != null;
+
+                bool mortgageTypeIsKnown = lookup["Default"].IsDefined(request.MortgageType);
+
+                return mortgageTypeIsKnown;
             });
 
         Rule<MortgageApplication> ageLimitRule = new(
@@ -29,8 +30,10 @@ public static class PolicySetup
             (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
             async (request, token) =>
             {
-                await Task.Delay(50, token);                
-                int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"].As<int>();
+                await Task.Delay(50, token);
+
+                int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"];
+
                 return request.ApplicantAge >= minAgeForMortgage;
             });
 
@@ -42,7 +45,7 @@ public static class PolicySetup
             async (request, token) =>
             {
                 await Task.Delay(20, token);
-                int minLoanAmount = lookup["Default"][request.MortgageType]["MinLoan"].As<int>();
+                int minLoanAmount = lookup["Default"][request.MortgageType]["MinLoan"];
                 return request.LoanAmount >= minLoanAmount;
             });
 
@@ -53,8 +56,8 @@ public static class PolicySetup
             (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too large.",
             async (request, token) =>
             {
-                await Task.Delay(20, token);               
-                int maxLoanAmount = lookup["Default"][request.MortgageType]["MaxLoan"].As<int>();
+                await Task.Delay(20, token);
+                int maxLoanAmount = lookup["Default"][request.MortgageType]["MaxLoan"];
                 return request.LoanAmount <= maxLoanAmount;
             });
 
@@ -62,9 +65,10 @@ public static class PolicySetup
             "MA005",
             "LTV",
             "Loan-To-Value Ratio must be above the minimum threshold for lenders to satisfy loan serviceability requirements",
-            (r) => {
+            (r) =>
+            {
                 double ltv = (r.LoanAmount - r.PrincipalAmount) / (double)r.LoanAmount * 100;
-                double minLTV = lookup["Default"][r.MortgageType]["MinLTV"].As<double>();
+                double minLTV = lookup["Default"][r.MortgageType]["MinLTV"];
 
                 return $"The LTV ratio [{ltv}] is above the minimum threshold for the high-ltv loans [{minLTV}]. " +
                        $"Either increase the principal {r.PrincipalAmount} or lower the loan amount {r.LoanAmount}";
@@ -72,8 +76,8 @@ public static class PolicySetup
             async (request, token) =>
             {
                 await Task.Delay(20, token);
-                double minLTV = lookup["Default"][request.MortgageType]["MinLTV"].As<double>();
-                double ltv = (request.LoanAmount - request.PrincipalAmount) / (double)request.LoanAmount * 100;                               
+                double minLTV = lookup["Default"][request.MortgageType]["MinLTV"];
+                double ltv = (request.LoanAmount - request.PrincipalAmount) / (double)request.LoanAmount * 100;
                 return ltv <= minLTV;
             });
 
@@ -81,12 +85,13 @@ public static class PolicySetup
             "MA006",
             "DSR",
             "Debt-To-Service Ratio must be below threshold so applicant can handle monthly loan commitments",
-            (r) => {
-                double interestRate = lookup["Default"][r.MortgageType]["InterestRateDSCR"].As<double>();
-                int minDSR = lookup["Default"][r.MortgageType]["MinDSCR"].As<int>();
-                double monthlyRepayment = monthlyRepayment = Financial.Pmt(interestRate, r.LoanTerm * 12, -r.LoanAmount);
-                double monthlyOutgoings = r.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * r.LoanAmount) / 12.0;                
-                double dscr = (monthlyOutgoings - r.MonthlyLivingExpenses) / (r.GrossIncome / 12);               
+            (r) =>
+            {
+                double interestRate = lookup["Default"][r.MortgageType]["InterestRateDSCR"];
+                int minDSR = lookup["Default"][r.MortgageType]["MinDSCR"];
+                double monthlyRepayment = monthlyRepayment = TotalPayment(interestRate, r.LoanTerm * 12, -r.LoanAmount);
+                double monthlyOutgoings = r.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * r.LoanAmount) / 12.0;
+                double dscr = (monthlyOutgoings - r.MonthlyLivingExpenses) / (r.GrossIncome / 12);
 
                 return $"The DSCR ratio [{dscr}] is above the minimum threshold [{minDSR}]. " +
                        $"Either increase applicant monthly salary or reduce applicant monthly expenditures";
@@ -94,11 +99,11 @@ public static class PolicySetup
             async (request, token) =>
             {
                 await Task.Delay(20, token);
-                double interestRate = lookup["Default"][request.MortgageType]["InterestRateDSCR"].As<double>();
-                int minDSR = lookup["Default"][request.MortgageType]["MinDSCR"].As<int>();
-                double monthlyRepayment = monthlyRepayment = Financial.Pmt(interestRate, request.LoanTerm * 12, -request.LoanAmount); 
-                double monthlyOutgoings = request.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * request.LoanAmount) / 12.0;                
-                double dsr = (monthlyOutgoings - request.MonthlyLivingExpenses) / (request.GrossIncome / 12);                
+                double interestRate = lookup["Default"][request.MortgageType]["InterestRateDSCR"];
+                int minDSR = lookup["Default"][request.MortgageType]["MinDSCR"];
+                double monthlyRepayment = monthlyRepayment = TotalPayment(interestRate, request.LoanTerm * 12, -request.LoanAmount);
+                double monthlyOutgoings = request.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * request.LoanAmount) / 12.0;
+                double dsr = (monthlyOutgoings - request.MonthlyLivingExpenses) / (request.GrossIncome / 12);
                 return dsr <= minDSR;
             });
 
@@ -119,28 +124,58 @@ public static class PolicySetup
         return policy;
     }
 
-    private static Lookups GetLookups()
+    private static NestedLookup<string, object> GetLookups()
     {
-        Lookups lookups = new(
-            new List<(string page, string row, string column, object value)>
-            {
-                // First Time Buyer rules
-                ("Default", "FTB", "MinLoan", 100_000),
-                ("Default", "FTB", "MaxLoan", 420_000), 
-                ("Default", "FTB", "MinApplicantAge", 25),                
-                ("Default", "FTB", "MinLTV", 95.0),                
-                ("Default", "FTB", "MinDSCR", 50),
-                ("Default", "FTB", "InterestRateDSCR", 0.95),
-                // Buy to Let rules
-                ("Default", "BTL", "MinLoan", 200_000),
-                ("Default", "BTL", "MaxLoan", 2_000_000),
-                ("Default", "BTL", "MinApplicantAge", 30),    
-                ("Default", "BTL", "MinLTV", 75.0),
-                ("Default", "BTL", "MinDSCR", 50),
-                ("Default", "BTL", "InterestRateDSCR", 0.95),
-            }
-        );
+        List<(IEnumerable<string> Keys, object Value)> data = [
+                    // First Time Buyer rules
+                    (["Default", "FTB", "MinLoan"], 100_000),
+                    (["Default", "FTB", "MaxLoan"], 420_000),
+                    (["Default", "FTB", "MinApplicantAge"], 25),
+                    (["Default", "FTB", "MinLTV"], 95.0),
+                    (["Default", "FTB", "MinDSCR"], 50),
+                    (["Default", "FTB", "InterestRateDSCR"], 0.95),
+                    // Buy to Let rules
+                    (["Default", "BTL", "MinLoan"], 200_000),
+                    (["Default", "BTL", "MaxLoan"], 2_000_000),
+                    (["Default", "BTL", "MinApplicantAge"], 30),
+                    (["Default", "BTL", "MinLTV"], 75.0),
+                    (["Default", "BTL", "MinDSCR"], 50),
+                    (["Default", "BTL", "InterestRateDSCR"], 0.95),
+        ];
+
+        NestedLookup<string, object> lookups = new(data);
 
         return lookups;
+    }
+
+    private static double TotalPayment(double rate, double nPer, double pv, double fv = 0, bool isEndOfPeriod = false)
+    {
+        if (nPer == 0.0)
+        {
+            throw new ArgumentException($"Invalid value for {nameof(nPer)}");
+        }
+
+        if (rate == 0.0)
+        {
+            return (-fv - pv) / nPer;
+        }
+        else
+        {
+            double adjustmentFactor;
+            if (!isEndOfPeriod)
+            {
+                adjustmentFactor = 1.0 + rate;
+            }
+            else
+            {
+                adjustmentFactor = 1.0;
+            }
+
+            double rateIncrement = rate + 1.0;
+
+            double compoundFactor = Math.Pow(rateIncrement, nPer);
+
+            return (-fv - pv * compoundFactor) / (adjustmentFactor * (compoundFactor - 1.0)) * rate;
+        }
     }
 }

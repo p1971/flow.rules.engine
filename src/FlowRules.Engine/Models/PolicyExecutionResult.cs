@@ -10,12 +10,12 @@ public class PolicyExecutionResult
     /// <summary>
     /// Gets the name of the policy.
     /// </summary>
-    public string PolicyName { get; init; }
+    public string? PolicyName { get; init; }
 
     /// <summary>
     /// Gets the policy id.
     /// </summary>
-    public string PolicyId { get; init; }
+    public string? PolicyId { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the policy passed.
@@ -35,10 +35,10 @@ public class PolicyExecutionResult
     /// <summary>
     /// Gets the correlation id to track requests from callers.
     /// </summary>
-    public string CorrelationId { get; init; }
+    public string? CorrelationId { get; init; }
 
     /// <summary>
     /// Gets the version of the rules policy.
     /// </summary>
-    public string Version { get; init; }
+    public string? Version { get; init; }
 }

@@ -6,41 +6,26 @@ namespace FlowRules.Engine.Models;
 /// Represents a rules policy.
 /// </summary>
 /// <typeparam name="T">The type the policy is to be executed against.</typeparam>
-public class Policy<T>
+public class Policy<T>(string id, string name, string? description, IList<Rule<T>> rules)
     where T : class
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Policy{T}"/> class.
-    /// </summary>
-    /// <param name="id">The id of the policy.</param>
-    /// <param name="name">The name of the policy.</param>
-    /// <param name="description">The description of the policy.</param>
-    /// <param name="rules">The rules for the policy.</param>
-    public Policy(string id, string name, string description, IList<Rule<T>> rules)
-    {
-        Id = id;
-        Name = name;
-        Description = description;
-        Rules = rules;
-    }
-
-    /// <summary>
     /// Gets the id of the policy.
     /// </summary>
-    public string Id { get; }
+    public string Id { get; } = id;
 
     /// <summary>
     /// Gets the name of the policy.
     /// </summary>
-    public string Name { get; }
+    public string Name { get; } = name;
 
     /// <summary>
     /// Gets the description of the policy.
     /// </summary>
-    public string Description { get; }
+    public string? Description { get; } = description;
 
     /// <summary>
     /// Gets the rules of the policy.
     /// </summary>
-    public IList<Rule<T>> Rules { get; }
+    public IList<Rule<T>> Rules { get; } = rules;
 }

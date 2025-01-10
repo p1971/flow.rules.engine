@@ -99,13 +99,13 @@ jobs:
       - name: Push generated package to GitHub registry
         if: contains(github.ref, 'develop') || contains(github.ref, 'releases')
         run: |
-          nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
+          dotnet nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
         shell: bash
 
       - name: Push generated package to Nuget registry
         if: contains(github.ref, 'main')
         run: |
-          nuget push ./nuget_packages/*.nupkg --source "https://api.nuget.org/v3/index.json" --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}}          
+          dotnet nuget push ./nuget_packages/*.nupkg --source "https://api.nuget.org/v3/index.json" --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}}          
         shell: bash
 
       - name: Create Release

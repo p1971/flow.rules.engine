@@ -62,7 +62,7 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     {
         using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
 
-        using IDbConnection connection = new SqlConnection(_config.ConnectionString);
+        await using SqlConnection connection = new(_config.ConnectionString);
 
         connection.Open();
 

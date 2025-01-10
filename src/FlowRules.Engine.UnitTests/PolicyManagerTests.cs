@@ -15,14 +15,9 @@ using Xunit.Abstractions;
 
 namespace FlowRules.Engine.UnitTests;
 
-public class PolicyManagerTests
+public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly ILogger<PolicyManager<PersonDataModel>> _logger;
-
-    public PolicyManagerTests(ITestOutputHelper testOutputHelper)
-    {
-        _logger = testOutputHelper.BuildLoggerFor<PolicyManager<PersonDataModel>>();
-    }
+    private readonly ILogger<PolicyManager<PersonDataModel>> _logger = testOutputHelper.BuildLoggerFor<PolicyManager<PersonDataModel>>();
 
     [Fact]
     public async Task Execute_Should_Handle_Map_Results()

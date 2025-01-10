@@ -8,21 +8,15 @@ using Xunit.Abstractions;
 
 namespace FlowRules.Engine.UnitTests;
 
-public class FlowRulesEventCounterSourceTests
+public class FlowRulesEventCounterSourceTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly ITestOutputHelper _testOutputHelper;
     private readonly TestEventListener _testEventListener = new();
     private readonly FlowRulesEventCounterSource _subject = FlowRulesEventCounterSource.EventSource;
-
-    public FlowRulesEventCounterSourceTests(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
 
     [Fact]
     public async Task FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent()
     {
-        _testOutputHelper.WriteLine($"{nameof(FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent)} - writing events.");
+        testOutputHelper.WriteLine($"{nameof(FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent)} - writing events.");
 
         Assert.True(_subject.IsEnabled());
 
@@ -46,10 +40,10 @@ public class FlowRulesEventCounterSourceTests
 
         _testEventListener.DisableEvents(new EventSource(FlowRulesEventCounterSource.EventSourceName));
     }
-        
+
     private class TestEventListener : EventListener
     {
-        public IList<(string key, string value)> EventArgs { get; set; } = new List<(string, string)>();
+        public List<(string key, string value)> EventArgs { get; set; } = [];
 
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
@@ -61,7 +55,7 @@ public class FlowRulesEventCounterSourceTests
                 });
             }
         }
-            
+
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
             if (eventData.Payload != null)

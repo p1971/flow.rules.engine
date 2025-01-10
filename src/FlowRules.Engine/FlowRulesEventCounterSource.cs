@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
 
 namespace FlowRules.Engine;
@@ -30,9 +31,9 @@ internal sealed class FlowRulesEventCounterSource : EventSource
     /// Writes and event counter to indicate a policy was executed.
     /// </summary>
     /// <param name="policyId">The id of the policy.</param>
-    /// <param name="elapsedMilliseconds">The time taken to execute the policy in milliseconds.</param>
+    /// <param name="elapsedTime">The time taken to execute the policy.</param>
     [Event(1, Level = EventLevel.Informational)]
-    public void PolicyExecution(string policyId, long elapsedMilliseconds)
+    public void PolicyExecution(string policyId, TimeSpan elapsedTime)
     {
         if (IsEnabled())
         {
@@ -44,7 +45,7 @@ internal sealed class FlowRulesEventCounterSource : EventSource
                     DisplayUnits = "ms"
                 });
 
-            counter.WriteMetric(elapsedMilliseconds);
+            counter.WriteMetric(elapsedTime.TotalMilliseconds);
         }
     }
 
@@ -53,9 +54,9 @@ internal sealed class FlowRulesEventCounterSource : EventSource
     /// </summary>
     /// <param name="policyId">The id of the policy.</param>
     /// <param name="ruleId">The id of the rule.</param>
-    /// <param name="elapsedMilliseconds">The time taken to execute the policy in milliseconds.</param>
+    /// <param name="elapsedTime">The time taken to execute the rule.</param>
     [Event(2, Level = EventLevel.Informational)]
-    public void RuleExecution(string policyId, string ruleId, long elapsedMilliseconds)
+    public void RuleExecution(string policyId, string ruleId, TimeSpan elapsedTime)
     {
         if (IsEnabled())
         {
@@ -67,7 +68,7 @@ internal sealed class FlowRulesEventCounterSource : EventSource
                     DisplayUnits = "ms"
                 });
 
-            counter.WriteMetric(elapsedMilliseconds);
+            counter.WriteMetric(elapsedTime.TotalMilliseconds);
         }
     }
 }

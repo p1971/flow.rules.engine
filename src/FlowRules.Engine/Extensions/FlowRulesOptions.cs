@@ -10,5 +10,5 @@ public class FlowRulesOptions
     /// <summary>
     /// Gets or sets the results repository to use.
     /// </summary>
-    public Type ResultsRepository { get; set; }
+    public Type? ResultsRepository { get; set; }
 }

@@ -25,7 +25,7 @@ public class PolicyExecutionResult
     /// <summary>
     /// Gets the individual rule execution results.
     /// </summary>
-    public RuleExecutionResult[] RuleExecutionResults { get; init; }
+    public RuleExecutionResult[] RuleExecutionResults { get; init; } = [];
 
     /// <summary>
     /// Gets the rule execution context id.

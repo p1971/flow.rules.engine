@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,10 +21,10 @@ public class FlowRulesEventCounterSourceTests(ITestOutputHelper testOutputHelper
 
         Assert.True(_subject.IsEnabled());
 
-        _subject.PolicyExecution("P001", 100);
-        _subject.PolicyExecution("P001", 200);
-        _subject.RuleExecution("P001", "R001", 40);
-        _subject.RuleExecution("P001", "R002", 50);
+        _subject.PolicyExecution("P001", TimeSpan.FromMilliseconds(100));
+        _subject.PolicyExecution("P001", TimeSpan.FromMilliseconds(200));
+        _subject.RuleExecution("P001", "R001", TimeSpan.FromMilliseconds(40));
+        _subject.RuleExecution("P001", "R002", TimeSpan.FromMilliseconds(50));
 
         await Task.Delay(2000);
 

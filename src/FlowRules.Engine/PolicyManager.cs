@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,9 +28,9 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
             policy.Name,
             executionContextId);
 
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        long startTime = TimeProvider.System.GetTimestamp();
 
-        IList<RuleExecutionResult> response = await Execute(policy, executionContextId, request, cancellationToken);
+        IList<RuleExecutionResult> response = await Execute(executionContextId, request, cancellationToken);
 
         PolicyExecutionResult policyExecutionResult =
             new()
@@ -42,15 +40,13 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
                 PolicyId = policy.Id,
                 PolicyName = policy.Name,
                 Version = policy.GetType().Assembly.GetName().Version?.ToString(4),
-                RuleExecutionResults = [..response],
+                RuleExecutionResults = [.. response],
                 Passed = response.All(r => r.Passed)
             };
 
-        stopwatch.Stop();
-
         await TryPersistResults(request, policyExecutionResult);
 
-        FlowRulesEventCounterSource.EventSource.PolicyExecution(policy.Id, stopwatch.ElapsedMilliseconds);
+        FlowRulesEventCounterSource.EventSource.PolicyExecution(policy.Id, TimeProvider.System.GetElapsedTime(startTime));
 
         return policyExecutionResult;
     }
@@ -91,7 +87,6 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
     }
 
     private async Task<IList<RuleExecutionResult>> Execute(
-        Policy<T> policy,
         Guid executionContextId,
         T request,
         CancellationToken cancellationToken)
@@ -114,32 +109,35 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
     {
         logger.LogInformation("... executing [{policyId}]:[{policyName}] for [{executionContextId}]", rule.Id, rule.Name, executionContextId);
 
-        RuleExecutionResult result = new(rule.Id, rule.Name, rule.Description);
+        RuleExecutionResultBuilder ruleExecutionResultBuilder = new(rule.Id, rule.Name, rule.Description);
 
-        Stopwatch stopwatch = Stopwatch.StartNew();
+        long stampStart = TimeProvider.System.GetTimestamp();
+
         try
         {
             bool passed = await rule.Source.Invoke(request, cancellationToken);
-            result.Passed = passed;
-            if (!passed && rule.FailureMessage != null)
+
+            if (passed)
             {
-                result.Message = rule.FailureMessage(request);
+                ruleExecutionResultBuilder.WithSuccess();
+            }
+            else
+            {
+                ruleExecutionResultBuilder.WithFailure(rule.FailureMessage?.Invoke(request));
             }
         }
         catch (Exception ex)
         {
-            result.Passed = false;
-            result.Exception = ex;
-            result.Message = ex.Message;
+            ruleExecutionResultBuilder.WithException(ex);
             logger.LogError(ex, "An exception occurred executing [{ruleId}]:[{ruleName}]", rule.Id, rule.Name);
         }
         finally
         {
-            stopwatch.Stop();
-            result.Elapsed = stopwatch.Elapsed;
-            FlowRulesEventCounterSource.EventSource.RuleExecution(policy.Id, rule.Id, stopwatch.ElapsedMilliseconds);
+            TimeSpan elapsed = TimeProvider.System.GetElapsedTime(stampStart);
+            ruleExecutionResultBuilder.WithTime(elapsed);
+            FlowRulesEventCounterSource.EventSource.RuleExecution(policy.Id, rule.Id, elapsed);
         }
 
-        return result;
+        return ruleExecutionResultBuilder.ToRuleExecutionResult();
     }
 }

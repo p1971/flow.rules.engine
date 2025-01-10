@@ -2,7 +2,6 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
         <Authors>pete@madhippy.com</Authors>
-        <Company>madhippy.com</Company>
         <Description>A simple rules engine implementation</Description>
         <Product>FlowRules</Product>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
